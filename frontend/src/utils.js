@@ -1,0 +1,12 @@
+export const fmt = (k) => k.split('-').reverse().join('-');
+
+export function lastDays(n) {
+  const t = new Date(), out = [];
+  for (let i = 0; i < n; i++) {
+    const d = new Date(t.getFullYear(), t.getMonth(), t.getDate() - i);
+    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  }
+  return out;
+}
+
+export const kmpl = (km, hsd) => (+km && +hsd ? (km / hsd).toFixed(2) : '');
