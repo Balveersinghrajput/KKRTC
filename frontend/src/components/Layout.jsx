@@ -39,28 +39,37 @@ function SubMenu({ label, children }) {
     </div>
   );
 }
-
 export default function Layout() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
+  const [open, setOpen] = useState(false);
   return (
     <>
       <Header />
       <div className="nav">
-        <Link className="home" to="/">Home</Link>
-        <Dropdown label="KMPL">
-          <Link to="/kmpl/depot">Add Depot KMPL</Link>
-          <Link to="/kmpl/vehicle">Add Vehicle KMPL</Link>
-        </Dropdown>
-        <Dropdown label="Report">
-          <SubMenu label="KMPL">
-            <Link to="/reports/daily-logsheet">Daily Logsheet Report</Link>
-            <Link to="/reports/monthly">Monthly KMPL Report</Link>
-            <Link to="/reports/from-to">From-To date KMPL Report</Link>
-            <Link to="/reports/from-to-typewise">From-To date KMPL Report Typewise</Link>
-            <Link to="/reports/defect">KMPL Defect Report</Link>
-          </SubMenu>
-        </Dropdown>
+        <button className="burger" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+            <circle cx="8" cy="6" r="2" fill="#c0c8ca" /><circle cx="16" cy="12" r="2" fill="#c0c8ca" /><circle cx="10" cy="18" r="2" fill="#c0c8ca" />
+          </svg>
+        </button>
+        <div className={'navitems' + (open ? ' open' : '')}
+             onClick={(e) => { if (e.target.closest('a')) setOpen(false); }}>
+          <Link className="home" to="/">Home</Link>
+          <Dropdown label="KMPL">
+            <Link to="/kmpl/depot">Add Depot KMPL</Link>
+            <Link to="/kmpl/vehicle">Add Vehicle KMPL</Link>
+          </Dropdown>
+          <Dropdown label="Report">
+            <SubMenu label="KMPL">
+              <Link to="/reports/daily-logsheet">Daily Logsheet Report</Link>
+              <Link to="/reports/monthly">Monthly KMPL Report</Link>
+              <Link to="/reports/from-to">From-To date KMPL Report</Link>
+              <Link to="/reports/from-to-typewise">From-To date KMPL Report Typewise</Link>
+              <Link to="/reports/defect">KMPL Defect Report</Link>
+            </SubMenu>
+          </Dropdown>
+        </div>
         <div className="user">
           <span>{user.name}</span>
           <Dropdown label={<span className="avatar"><svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#5bb5e6"/><circle cx="20" cy="15" r="7" fill="#f2b98d"/><path d="M6 40c0-9 6-13 14-13s14 4 14 13z" fill="#1f86c7"/></svg></span>} className="avatarbtn">
