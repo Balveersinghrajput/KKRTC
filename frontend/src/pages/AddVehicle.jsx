@@ -3,6 +3,7 @@ import { api } from '../api';
 import { fmt, lastDays, busCompare, uniqSorted } from '../utils';
 import { Loader } from '../components/Loader';
 import SearchSelect from '../components/SearchSelect';
+import DriverForm from '../components/DriverForm';
 
 const DAYS = lastDays(60);
 const THUMBS = ['1', '2', '3'];
@@ -25,9 +26,10 @@ function DateForm({ value, onChange, onGo, big }) {
   );
 }
 
-function VehicleModal({ sug, routes, drivers, onClose, onAdd }) {
+function VehicleModal({ sug, routes, drivers, onClose, onAdd, onDriverAdded }) {
   const [f, setF] = useState({ bus: '', other: '', route: '', d1: '', d2: '', make: '', norms: '' });
   const [err, setErr] = useState('');
+  const [drvOpen, setDrvOpen] = useState(false);
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
 
   function pickBus(v) {
@@ -39,36 +41,54 @@ function VehicleModal({ sug, routes, drivers, onClose, onAdd }) {
     if (!bus) { setErr('Select or enter a bus number.'); return; }
     onAdd({ bus, route: f.route, d1: f.d1, d2: f.d2, make: f.make, norms: f.norms });
   }
+  function driverSaved(d) {
+    onDriverAdded(d.name);
+    setF((x) => (x.d1 ? { ...x, d2: x.d2 || d.name } : { ...x, d1: d.name }));
+    setDrvOpen(false);
+  }
 
   return (
-    <div className="modal-bg" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label="Select Vehicle Details">
-        <div className="modal-h">Select Vehicle Details</div>
-        <div className="modal-b">
-          <label>Bus Number:</label>
-          <SearchSelect value={f.bus} options={[OTHER, ...sug.buses.map((b) => b.bus)]} onChange={pickBus} />
-          {f.bus === OTHER && (
-            <input className="modal-in" placeholder="Enter other corporation bus number"
-                   value={f.other} onChange={(e) => set('other', e.target.value.toUpperCase())} />
-          )}
-          <label>Route Number:</label>
-          <SearchSelect value={f.route} options={routes} allowNew onChange={(v) => set('route', v)} />
-          <label>Driver 1:</label>
-          <SearchSelect value={f.d1} options={drivers} allowNew onChange={(v) => set('d1', v)} />
-          <label>Driver 2:</label>
-          <SearchSelect value={f.d2} options={drivers} allowNew onChange={(v) => set('d2', v)} />
-          <label>Make:</label>
-          <SearchSelect value={f.make} options={MAKES} onChange={(v) => set('make', v)} />
-          <label>Norms:</label>
-          <SearchSelect value={f.norms} options={NORMS} onChange={(v) => set('norms', v)} />
-          {err && <div className="err">{err}</div>}
-        </div>
-        <div className="modal-f">
-          <button className="btn red" onClick={onClose}>Close</button>
-          <button className="btn" onClick={submit}>Submit</button>
+    <>
+      <div className="modal-bg" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <div className="modal" role="dialog" aria-modal="true" aria-label="Select Vehicle Details">
+          <div className="modal-h">Select Vehicle Details</div>
+          <div className="modal-b">
+            <label>Bus Number:</label>
+            <SearchSelect value={f.bus} options={[OTHER, ...sug.buses.map((b) => b.bus)]} onChange={pickBus} />
+            {f.bus === OTHER && (
+              <input className="modal-in" placeholder="Enter other corporation bus number"
+                     value={f.other} onChange={(e) => set('other', e.target.value.toUpperCase())} />
+            )}
+            <label>Route Number:</label>
+            <SearchSelect value={f.route} options={routes} allowNew onChange={(v) => set('route', v)} />
+            <label>Driver 1:</label>
+            <SearchSelect value={f.d1} options={drivers} allowNew onChange={(v) => set('d1', v)} />
+            <label>Driver 2:</label>
+            <SearchSelect value={f.d2} options={drivers} allowNew onChange={(v) => set('d2', v)} />
+            <button type="button" className="linkbtn" onClick={() => setDrvOpen(true)}>+ Add Driver</button>
+            <label>Make:</label>
+            <SearchSelect value={f.make} options={MAKES} onChange={(v) => set('make', v)} />
+            <label>Norms:</label>
+            <SearchSelect value={f.norms} options={NORMS} onChange={(v) => set('norms', v)} />
+            {err && <div className="err">{err}</div>}
+          </div>
+          <div className="modal-f">
+            <button className="btn red" onClick={onClose}>Close</button>
+            <button className="btn" onClick={submit}>Submit</button>
+          </div>
         </div>
       </div>
-    </div>
+      {drvOpen && (
+        <div className="modal-bg top" onMouseDown={(e) => { if (e.target === e.currentTarget) setDrvOpen(false); }}>
+          <div className="modal" role="dialog" aria-modal="true" aria-label="Add Driver">
+            <div className="modal-h">Add Driver</div>
+            <div className="modal-b">
+              <DriverForm onSaved={driverSaved} onCancel={() => setDrvOpen(false)} />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -210,8 +230,8 @@ export default function AddVehicle() {
           </div>
         </>
       )}
-      {modal && <VehicleModal sug={sug} routes={routes} drivers={drivers} onClose={() => setModal(false)} onAdd={addVehicle} />}
-      {toast && <div className="toast" role="status">{toast}</div>}
+   {modal && <VehicleModal sug={sug} routes={routes} drivers={drivers} onClose={() => setModal(false)} onAdd={addVehicle}
+  onDriverAdded={(name) => setSug((s) => ({ ...s, drivers: [...s.drivers, name] }))} />}      {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );
 }

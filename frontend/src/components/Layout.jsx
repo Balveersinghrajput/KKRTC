@@ -67,6 +67,7 @@ export default function Layout() {
               <Link to="/reports/from-to">From-To date KMPL Report</Link>
               <Link to="/reports/from-to-typewise">From-To date KMPL Report Typewise</Link>
               <Link to="/reports/defect">KMPL Defect Report</Link>
+              <Link to="/kmpl/driver">Add Driver</Link>
             </SubMenu>
           </Dropdown>
         </div>

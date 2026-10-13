@@ -170,3 +170,25 @@ tfoot th{background:#f2f2f2}
 .mrep th.c{text-align:center}
 @media (max-width:768px){.mtitle{font-size:20px!important}.mrep{font-size:15px}.mrep th,.mrep td{padding:10px 12px!important}}
 @media print{.mtitle{font-size:16px!important}.mrep{font-size:10px}.mrep th,.mrep td{padding:3px 4px!important}}
+/* from-to report */
+.mf input[type=date]{width:155px;height:32px;padding:0 6px}
+.rhead{text-align:center;margin:14px 0}
+.rhead h3{margin:8px 0;font-size:22px;font-weight:600}
+.rhead .blue{color:#0000ee}
+.wises{display:flex;flex-wrap:wrap;gap:30px;justify-content:center;align-items:flex-start;padding:0 8px}
+.wise{flex:1 1 380px;max-width:640px}
+.wise h2{text-align:center;font-size:28px;font-weight:500;margin:10px 0}
+.ftable{width:100%;min-width:0;border:2px solid #222;font-size:18px}
+.ftable th,.ftable td{border:2px solid #222;padding:10px 12px;text-align:left}
+.ftable thead th{background:#f2f2f2}
+.ftable tfoot th{background:#fff}
+@media (max-width:768px){.rhead h3{font-size:17px}.wise h2{font-size:21px}.ftable{font-size:15px}.ftable th,.ftable td{padding:8px}}
+@media print{.rhead h3{font-size:13px;margin:3px 0}.wise h2{font-size:15px;margin:6px 0}.ftable{font-size:11px}.ftable th,.ftable td{padding:3px 5px!important}.wises{gap:12px}}
+/* add driver */
+.dform{max-width:460px}
+.dform label{margin:12px 0 4px}
+.dform-btns{display:flex;justify-content:space-between;gap:10px;margin-top:16px}
+.dform-btns .btn:only-child{margin-left:auto}
+.subh{font-size:22px;font-weight:500;margin:30px 0 10px}
+.linkbtn{background:none;border:0;color:#0d6efd;cursor:pointer;font-size:14px;padding:6px 0 0;font-family:inherit}
+.modal-bg.top{z-index:1200}

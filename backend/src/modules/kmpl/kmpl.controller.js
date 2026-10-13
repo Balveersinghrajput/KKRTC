@@ -137,8 +137,11 @@ export async function suggestions(req, res) {
   const [vehicles, routes, drivers] = await Promise.all([
     pool.query('SELECT bus_no AS bus, make, norms FROM vehicles WHERE depot_code=$1', [depot]),
     q(`SELECT DISTINCT route_no AS v FROM kmpl_entries WHERE depot_code=$1 AND route_no<>''`),
-    q(`SELECT DISTINCT v FROM (SELECT driver1 AS v FROM kmpl_entries WHERE depot_code=$1
-        UNION SELECT driver2 FROM kmpl_entries WHERE depot_code=$1) t WHERE v<>''`),
+    q(`SELECT DISTINCT v FROM (
+         SELECT name AS v FROM drivers WHERE depot_code=$1
+         UNION SELECT driver1 FROM kmpl_entries WHERE depot_code=$1
+         UNION SELECT driver2 FROM kmpl_entries WHERE depot_code=$1
+       ) t WHERE v<>''`),
   ]);
   res.json({
     buses: vehicles.rows.sort((a, b) => c(a.bus, b.bus)),

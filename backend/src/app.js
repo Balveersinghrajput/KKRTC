@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './modules/auth/auth.routes.js';
 import kmplRoutes from './modules/kmpl/kmpl.routes.js';
 import reportRoutes from './modules/reports/reports.routes.js';
+import driverRoutes from './modules/drivers/drivers.routes.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -18,6 +19,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/kmpl', kmplRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/drivers', driverRoutes);
 
 app.use((req, res) => res.status(404).json({ message: 'Not found' }));
 app.use((err, req, res, next) => {

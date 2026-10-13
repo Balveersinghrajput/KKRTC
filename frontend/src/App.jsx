@@ -8,6 +8,8 @@ import AddVehicle from './pages/AddVehicle';
 import DailyLogsheet from './pages/DailyLogsheet';
 import MonthlyReport from './pages/MonthlyReport';
 import { PageLoader } from './components/Loader';
+import FromTo from './pages/FromTo';
+import AddDriver from './pages/AddDriver';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -23,9 +25,10 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/kmpl/depot" element={<Placeholder title="Add Depot KMPL" />} />
         <Route path="/kmpl/vehicle" element={<AddVehicle />} />
+        <Route path="/kmpl/driver" element={<AddDriver />} />
         {/* <Route path="/reports/daily-logsheet" element={<Placeholder title="Daily Logsheet Report" />} />
         <Route path="/reports/monthly" element={<Placeholder title="Monthly KMPL Report" />} /> */}
-        <Route path="/reports/from-to" element={<Placeholder title="From-To date KMPL Report" />} />
+        <Route path="/reports/from-to" element={<FromTo />} />
         <Route path="/reports/from-to-typewise" element={<Placeholder title="From-To date KMPL Report Typewise" />} />
         <Route path="/reports/defect" element={<Placeholder title="KMPL Defect Report" />} />
         <Route path="/reports/daily-logsheet" element={<DailyLogsheet />} />
