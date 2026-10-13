@@ -1,14 +1,14 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 import App from './App.jsx';
 import { AuthProvider } from './AuthContext.jsx';
 import './styles.css';
 
 createRoot(document.getElementById('root')).render(
-  <BrowserRouter>
+  <HashRouter>
     <AuthProvider>
       <App />
     </AuthProvider>
-  </BrowserRouter>
+  </HashRouter>
 );
