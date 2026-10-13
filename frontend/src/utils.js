@@ -10,3 +10,16 @@ export function lastDays(n) {
 }
 
 export const kmpl = (km, hsd) => (+km && +hsd ? (km / hsd).toFixed(2) : '');
+
+export const busCompare = (a, b) => {
+  const x = String(a || '').trim();
+  const y = String(b || '').trim();
+  if (!x && !y) return 0;
+  if (!x) return 1;
+  if (!y) return -1;
+  return x.localeCompare(y, 'en', { numeric: true, sensitivity: 'base' });
+};
+
+export const uniqSorted = (arr) =>
+  [...new Set(arr.map((x) => String(x || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' }));

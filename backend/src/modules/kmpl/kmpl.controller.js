@@ -18,6 +18,8 @@ const rowSchema = z.object({
   hsd: num,
   th: z.preprocess(toNum, z.number().int().min(1).max(3).nullable()),
   def: text(200),
+  make: text(30),
+  norms: text(10),
 });
 const bodySchema = z.object({ rows: z.array(rowSchema).max(300) });
 
@@ -81,11 +83,19 @@ export async function saveEntries(req, res) {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [depot, d.data, i++, r.bus, r.route, r.d1, r.d2, r.log, r.km, r.hsd, r.th, r.def, req.user.sub]);
     }
-    if (buses.length) {
+    // Update vehicle information
+    const meta = new Map();
+    for (const r of rows) {
+      const m = meta.get(r.bus) || { make: '', norms: '' };
+      meta.set(r.bus, { make: r.make || m.make, norms: r.norms || m.norms });
+    }
+    for (const [bus, m] of meta) {
       await client.query(
-        `INSERT INTO vehicles (depot_code, bus_no)
-         SELECT $1::text, unnest($2::text[])
-         ON CONFLICT (depot_code, bus_no) DO NOTHING`, [depot, buses]);
+        `INSERT INTO vehicles (depot_code, bus_no, make, norms) VALUES ($1,$2,$3,$4)
+         ON CONFLICT (depot_code, bus_no) DO UPDATE SET
+           make  = CASE WHEN EXCLUDED.make  <> '' THEN EXCLUDED.make  ELSE vehicles.make  END,
+           norms = CASE WHEN EXCLUDED.norms <> '' THEN EXCLUDED.norms ELSE vehicles.norms END`,
+        [depot, bus, m.make, m.norms]);
     }
     await client.query(
       `INSERT INTO kmpl_days (depot_code, entry_date) VALUES ($1,$2)
@@ -122,12 +132,17 @@ export async function summary(req, res) {
 
 export async function suggestions(req, res) {
   const depot = depotOf(req, res); if (!depot) return;
+  const c = (a, b) => a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' });
   const q = (sql) => pool.query(sql, [depot]).then((r) => r.rows.map((x) => x.v));
-  const [buses, routes, drivers] = await Promise.all([
-    q(`SELECT bus_no AS v FROM vehicles WHERE depot_code=$1 ORDER BY 1`),
-    q(`SELECT DISTINCT route_no AS v FROM kmpl_entries WHERE depot_code=$1 AND route_no<>'' ORDER BY 1`),
+  const [vehicles, routes, drivers] = await Promise.all([
+    pool.query('SELECT bus_no AS bus, make, norms FROM vehicles WHERE depot_code=$1', [depot]),
+    q(`SELECT DISTINCT route_no AS v FROM kmpl_entries WHERE depot_code=$1 AND route_no<>''`),
     q(`SELECT DISTINCT v FROM (SELECT driver1 AS v FROM kmpl_entries WHERE depot_code=$1
-        UNION SELECT driver2 FROM kmpl_entries WHERE depot_code=$1) t WHERE v<>'' ORDER BY 1`),
+        UNION SELECT driver2 FROM kmpl_entries WHERE depot_code=$1) t WHERE v<>''`),
   ]);
-  res.json({ buses, routes, drivers });
+  res.json({
+    buses: vehicles.rows.sort((a, b) => c(a.bus, b.bus)),
+    routes: routes.sort(c),
+    drivers: drivers.sort(c),
+  });
 }

@@ -3,17 +3,26 @@ let accessToken = null;
 export const setToken = (t) => { accessToken = t; };
 
 async function raw(path, opts = {}) {
-  const res = await fetch(BASE + path, {
-    ...opts,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: 'Bearer ' + accessToken } : {}),
-      ...opts.headers,
-    },
-  });
-  const data = await res.json().catch(() => ({}));
-  return { res, data };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const res = await fetch(BASE + path, {
+      ...opts,
+      signal: ctrl.signal,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: 'Bearer ' + accessToken } : {}),
+        ...opts.headers,
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+  } catch (e) {
+    throw Object.assign(new Error('Cannot reach the server. Check that the backend is running.'), { status: 0 });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function api(path, opts) {

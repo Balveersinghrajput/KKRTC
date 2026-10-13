@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { fmt, lastDays } from '../utils';
+import { fmt, lastDays, busCompare, uniqSorted } from '../utils';
 import { Loader } from '../components/Loader';
+import SearchSelect from '../components/SearchSelect';
 
 const DAYS = lastDays(60);
 const THUMBS = ['1', '2', '3'];
+const MAKES = ['Corona', 'Eicher', 'Leyland', 'Tata', 'Volvo'];
+const NORMS = ['BS-1', 'BS-2', 'BS-3', 'BS-4', 'BS-6'];
+const OTHER = 'Other Corporation';
+let uid = 0;
+const nk = () => 'k' + ++uid;
 
 function DateForm({ value, onChange, onGo, big }) {
   return (
@@ -19,6 +25,53 @@ function DateForm({ value, onChange, onGo, big }) {
   );
 }
 
+function VehicleModal({ sug, routes, drivers, onClose, onAdd }) {
+  const [f, setF] = useState({ bus: '', other: '', route: '', d1: '', d2: '', make: '', norms: '' });
+  const [err, setErr] = useState('');
+  const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
+
+  function pickBus(v) {
+    const known = sug.buses.find((b) => b.bus === v);
+    setF((x) => ({ ...x, bus: v, make: known?.make || x.make, norms: known?.norms || x.norms }));
+  }
+  function submit() {
+    const bus = (f.bus === OTHER ? f.other : f.bus).trim().toUpperCase().replace(/\s+/g, '');
+    if (!bus) { setErr('Select or enter a bus number.'); return; }
+    onAdd({ bus, route: f.route, d1: f.d1, d2: f.d2, make: f.make, norms: f.norms });
+  }
+
+  return (
+    <div className="modal-bg" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label="Select Vehicle Details">
+        <div className="modal-h">Select Vehicle Details</div>
+        <div className="modal-b">
+          <label>Bus Number:</label>
+          <SearchSelect value={f.bus} options={[OTHER, ...sug.buses.map((b) => b.bus)]} onChange={pickBus} />
+          {f.bus === OTHER && (
+            <input className="modal-in" placeholder="Enter other corporation bus number"
+                   value={f.other} onChange={(e) => set('other', e.target.value.toUpperCase())} />
+          )}
+          <label>Route Number:</label>
+          <SearchSelect value={f.route} options={routes} allowNew onChange={(v) => set('route', v)} />
+          <label>Driver 1:</label>
+          <SearchSelect value={f.d1} options={drivers} allowNew onChange={(v) => set('d1', v)} />
+          <label>Driver 2:</label>
+          <SearchSelect value={f.d2} options={drivers} allowNew onChange={(v) => set('d2', v)} />
+          <label>Make:</label>
+          <SearchSelect value={f.make} options={MAKES} onChange={(v) => set('make', v)} />
+          <label>Norms:</label>
+          <SearchSelect value={f.norms} options={NORMS} onChange={(v) => set('norms', v)} />
+          {err && <div className="err">{err}</div>}
+        </div>
+        <div className="modal-f">
+          <button className="btn red" onClick={onClose}>Close</button>
+          <button className="btn" onClick={submit}>Submit</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AddVehicle() {
   const [pick, setPick] = useState('');
   const [date, setDate] = useState('');
@@ -28,12 +81,14 @@ export default function AddVehicle() {
   const [toast, setToast] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [modal, setModal] = useState(false);
 
   const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 3000); };
+  const sortRows = (list) => [...list].sort((a, b) => busCompare(a.bus, b.bus));
 
   async function load(d) {
     const [e, s] = await Promise.all([api('/kmpl/entries/' + d), api('/kmpl/suggestions')]);
-    setRows(e.rows.map((r) => ({ ...r, th: r.th ? String(r.th) : '' })));
+    setRows(sortRows(e.rows.map((r) => ({ ...r, th: r.th ? String(r.th) : '', _k: nk() }))));
     setIsNew(!e.saved);
     setSug(s);
     setDate(d);
@@ -46,14 +101,15 @@ export default function AddVehicle() {
     try { await load(d); } catch (ex) { flash(ex.message); } finally { setLoading(false); }
   }
 
+  const routes = uniqSorted([...sug.routes, ...rows.map((r) => r.route)]);
+  const drivers = uniqSorted([...sug.drivers, ...rows.flatMap((r) => [r.d1, r.d2])]);
+
   const setField = (i, f, v) => setRows((rs) => rs.map((r, n) => (n === i ? { ...r, [f]: v } : r)));
   const kmpl = (r) => (+r.km && +r.hsd ? (r.km / r.hsd).toFixed(2) : '');
   const totKm = rows.reduce((a, r) => a + (+r.km || 0), 0);
   const totHsd = rows.reduce((a, r) => a + (+r.hsd || 0), 0);
 
   async function save(msg, list = rows) {
-    const bad = list.findIndex((r) => !String(r.bus || '').trim());
-    if (bad >= 0) { flash('Enter the bus number in row ' + (bad + 1)); return; }
     setBusy(true);
     try {
       await api('/kmpl/entries/' + date, { method: 'PUT', body: JSON.stringify({ rows: list }) });
@@ -62,13 +118,18 @@ export default function AddVehicle() {
     } catch (ex) { flash(ex.message); } finally { setBusy(false); }
   }
 
+  function addVehicle(v) {
+    setRows((rs) => sortRows([...rs, { ...v, th: '', _k: nk() }]));
+    setModal(false);
+    flash(v.bus + ' added. Fill KM and HSD, then press Submit.');
+  }
+
   function remove(i) {
     const r = rows[i];
-    const name = r.bus || 'this row';
-    if (!window.confirm(`Remove ${name} from ${fmt(date)} only? It will still appear on other dates.`)) return;
+    if (!window.confirm(`Remove ${r.bus} from ${fmt(date)} only? It will still appear on other dates.`)) return;
     const list = rows.filter((_, n) => n !== i);
     setRows(list);
-    if (String(r.bus || '').trim()) save(`${name} removed from ${fmt(date)}`, list);
+    save(`${r.bus} removed from ${fmt(date)}`, list);
   }
 
   if (!date) {
@@ -76,6 +137,7 @@ export default function AddVehicle() {
       <div className="pg0">
         <DateForm big value={pick} onChange={setPick} onGo={() => open(pick)} />
         {loading && <Loader />}
+        {toast && <div className="toast" role="status">{toast}</div>}
       </div>
     );
   }
@@ -84,7 +146,7 @@ export default function AddVehicle() {
     <div className="entrypg">
       <DateForm value={pick} onChange={setPick} onGo={() => open(pick)} />
       <div style={{ marginTop: 20 }}>
-        <button className="btn grn" onClick={() => setRows([...rows, { bus: '', th: '' }])}>Add Vehicle</button>
+        <button className="btn grn" onClick={() => setModal(true)}>Add Vehicle</button>
       </div>
       <h1>Division: BIDAR Depot: HBD KMPL Entry for Date: {fmt(date)}</h1>
       {isNew && !loading && (
@@ -93,10 +155,6 @@ export default function AddVehicle() {
 
       {loading ? <Loader /> : (
         <>
-          <datalist id="dl_bus">{sug.buses.map((v) => <option key={v} value={v} />)}</datalist>
-          <datalist id="dl_route">{sug.routes.map((v) => <option key={v} value={v} />)}</datalist>
-          <datalist id="dl_drv">{sug.drivers.map((v) => <option key={v} value={v} />)}</datalist>
-
           <div className="wrap" style={{ padding: 0 }}>
             <table style={{ minWidth: 1500 }}>
               <thead>
@@ -112,12 +170,12 @@ export default function AddVehicle() {
                     No vehicles for this date. Click Add Vehicle to start.</td></tr>
                 )}
                 {rows.map((r, i) => (
-                  <tr key={i}>
+                  <tr key={r._k}>
                     <td>{i + 1}</td>
-                    <td><input list="dl_bus" value={r.bus || ''} onChange={(e) => setField(i, 'bus', e.target.value)} /></td>
-                    <td><input list="dl_route" value={r.route || ''} onChange={(e) => setField(i, 'route', e.target.value)} /></td>
-                    <td><input list="dl_drv" value={r.d1 || ''} onChange={(e) => setField(i, 'd1', e.target.value)} /></td>
-                    <td><input list="dl_drv" value={r.d2 || ''} onChange={(e) => setField(i, 'd2', e.target.value)} /></td>
+                    <td>{r.bus}</td>
+                    <td><SearchSelect value={r.route} options={routes} allowNew onChange={(v) => setField(i, 'route', v)} /></td>
+                    <td><SearchSelect value={r.d1} options={drivers} allowNew onChange={(v) => setField(i, 'd1', v)} /></td>
+                    <td><SearchSelect value={r.d2} options={drivers} allowNew onChange={(v) => setField(i, 'd2', v)} /></td>
                     <td><input value={r.log || ''} onChange={(e) => setField(i, 'log', e.target.value)} /></td>
                     <td><input type="number" min="0" step="any" value={r.km ?? ''} onChange={(e) => setField(i, 'km', e.target.value)} /></td>
                     <td><input type="number" min="0" step="any" value={r.hsd ?? ''} onChange={(e) => setField(i, 'hsd', e.target.value)} /></td>
@@ -152,6 +210,7 @@ export default function AddVehicle() {
           </div>
         </>
       )}
+      {modal && <VehicleModal sug={sug} routes={routes} drivers={drivers} onClose={() => setModal(false)} onAdd={addVehicle} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );
